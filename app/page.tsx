@@ -8,8 +8,9 @@ import { PushButton } from "@/components/PushButton";
 import { Legend } from "@/components/Legend";
 import { Timetable, TodayClasses } from "@/components/Timetable";
 import type { Slot, Term } from "@/lib/timetable";
+import { Usage } from "@/components/Usage";
 
-type Tab = "chat" | "upcoming" | "timetable" | "calendar";
+type Tab = "chat" | "upcoming" | "timetable" | "calendar" | "usage";
 
 const ERRORS: Record<string, string> = {
   not_allowed: "That Google account isn't allowed to use this app. Ask a parent to add it.",
@@ -57,7 +58,7 @@ function Login() {
 interface Me {
   authed: boolean;
   email?: string;
-  role?: "admin" | "child";
+  role?: "superadmin" | "admin" | "child";
   name?: string | null;
   bypass?: boolean;
 }
@@ -93,7 +94,7 @@ export default function Home() {
     if (me?.authed) refresh();
   }, [me, refresh]);
 
-  const canDelete = (i: Item) => me?.role === "admin" || (!!i.created_by && i.created_by === me?.email);
+  const canDelete = (i: Item) => me?.role === "superadmin" || me?.role === "admin" || (!!i.created_by && i.created_by === me?.email);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -121,10 +122,10 @@ export default function Home() {
   async function removeSlot(slot: Slot) {
     if (!confirm(`Remove ${slot.subject} from the timetable?`)) return;
     const res = await fetch(`/api/timetable/${slot.id}`, { method: "DELETE" });
-    if (res.status === 403) alert("Only a parent can remove this class.");
+    if (res.status === 403) alert("Only the superadmin can remove timetable classes.");
     refresh();
   }
-  const canDeleteSlot = (s: Slot) => me?.role === "admin" || (!!s.created_by && s.created_by === me?.email);
+  const canDeleteSlot = () => me?.role === "superadmin";
 
   if (me === null) return null;
   if (!me.authed) return <Login />;
@@ -140,7 +141,7 @@ export default function Home() {
           <div style={{ minWidth: 0 }}>
             <h1>School Planner</h1>
             <div className="who">
-              {me.name || me.email} · {me.role === "admin" ? "Parent" : "Student"} ·{" "}
+              {me.name || me.email} · {me.role === "superadmin" ? "Superadmin" : me.role === "admin" ? "Parent" : "Student"} ·{" "}
               <button className="link" onClick={signOut}>
                 Sign out
               </button>
@@ -151,9 +152,9 @@ export default function Home() {
       </header>
       {me.bypass && <div className="banner">Login is switched off for now (temporary). Don't share this link.</div>}
       <nav className="tabs" role="tablist">
-        {(["chat", "upcoming", "timetable", "calendar"] as Tab[]).map((t) => (
+        {((me.role === "superadmin" ? ["chat", "upcoming", "timetable", "calendar", "usage"] : ["chat", "upcoming", "timetable", "calendar"]) as Tab[]).map((t) => (
           <button key={t} role="tab" className="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
-            {t === "chat" ? "Chat" : t === "upcoming" ? `Upcoming${open.length ? ` (${open.length})` : ""}` : t === "timetable" ? "Timetable" : "Calendar"}
+            {t === "chat" ? "Chat" : t === "upcoming" ? `Upcoming${open.length ? ` (${open.length})` : ""}` : t === "timetable" ? "Timetable" : t === "usage" ? "Usage" : "Calendar"}
           </button>
         ))}
       </nav>
@@ -168,6 +169,11 @@ export default function Home() {
       {tab === "timetable" && (
         <div className="pane">
           <Timetable terms={terms} slots={slots} activeTermId={activeTermId} onDelete={removeSlot} canDelete={canDeleteSlot} />
+        </div>
+      )}
+      {tab === "usage" && me.role === "superadmin" && (
+        <div className="pane">
+          <Usage />
         </div>
       )}
       {tab === "calendar" && (

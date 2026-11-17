@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDenied, requireSession } from "@/lib/auth";
 import { runAgent } from "@/lib/agent";
-import { takeChatQuota } from "@/lib/usage";
+import { recordUserChat, takeChatQuota } from "@/lib/usage";
 
 export const maxDuration = 60;
 
@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Daily chat limit reached. Try again tomorrow, or add items from the other tabs." }, { status: 429 });
   }
   try {
-    return NextResponse.json(await runAgent(parsed.data.messages, session));
+    const { usage, ...result } = await runAgent(parsed.data.messages, session);
+    await recordUserChat(session.email, usage).catch((e) => console.error("usage log failed", e));
+    return NextResponse.json(result);
   } catch (e) {
     console.error("chat error", e);
     return NextResponse.json({ error: "The assistant is unavailable right now. Try again in a moment." }, { status: 502 });

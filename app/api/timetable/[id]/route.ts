@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { isDenied, requireSession } from "@/lib/auth";
-import { canDelete } from "@/lib/permissions";
+import { canDeleteSlot } from "@/lib/permissions";
 import { deleteSlot, getSlot, updateSlot } from "@/lib/timetable";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -33,7 +33,7 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
   if (!id) return NextResponse.json({ error: "Bad id" }, { status: 400 });
   const existing = await getSlot(id);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!canDelete(session, existing)) return NextResponse.json({ error: "Only a parent can delete this class" }, { status: 403 });
+  if (!canDeleteSlot(session)) return NextResponse.json({ error: "Only the superadmin can delete timetable classes" }, { status: 403 });
   const slot = await deleteSlot(id);
   return slot ? NextResponse.json({ slot }) : NextResponse.json({ error: "Not found" }, { status: 404 });
 }

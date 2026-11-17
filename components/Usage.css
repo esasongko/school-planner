@@ -1,0 +1,10 @@
+/* usage (superadmin) */
+.usage-total { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: .9rem; color: var(--ink-2); box-shadow: var(--shadow-sm); }
+.usage-total strong { color: var(--brand); font-size: 1.15rem; }
+.usage-grid { display: flex; gap: 16px; margin: 6px 0 4px; font-size: .84rem; color: var(--muted); }
+.usage-grid b { color: var(--ink); font-size: 1rem; }
+.usage-days { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow-sm); }
+.usage-day { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: .78rem; color: var(--muted); }
+.usage-day-label { flex: none; width: 42px; font-variant-numeric: tabular-nums; }
+.usage-bar { height: 8px; border-radius: 4px; background: var(--brand-2); min-width: 2px; }
+.usage-day-n { font-weight: 650; color: var(--ink-2); }

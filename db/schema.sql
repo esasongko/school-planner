@@ -68,3 +68,12 @@ CREATE TABLE IF NOT EXISTS timetable_terms (
   CHECK (effective_to IS NULL OR effective_to >= effective_from)
 );
 ALTER TABLE timetable ADD COLUMN IF NOT EXISTS term_id INTEGER REFERENCES timetable_terms(id) ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS chat_usage_user (
+  day           DATE NOT NULL,
+  email         TEXT NOT NULL,
+  messages      INTEGER NOT NULL DEFAULT 0,
+  input_tokens  INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, email)
+);

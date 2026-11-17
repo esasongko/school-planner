@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const SESSION_COOKIE = "st_session";
-export type Role = "admin" | "child";
+export type Role = "superadmin" | "admin" | "child";
 export interface Session {
   email: string;
   role: Role;
@@ -12,7 +12,7 @@ export interface Session {
 const SESSION_DAYS = 90;
 
 /**
- * AUTH_ALLOWLIST="parent@gmail.com:admin,kid@gmail.com:child"
+ * AUTH_ALLOWLIST="owner@gmail.com:superadmin,parent@gmail.com:admin,kid@gmail.com:child"
  * Only these Google accounts can sign in. Roles are read from here on every request,
  * so removing someone (or changing a role) takes effect immediately.
  */
@@ -21,7 +21,7 @@ export function parseAllowlist(raw: string = process.env.AUTH_ALLOWLIST ?? ""): 
   for (const part of raw.split(",")) {
     const [email, role] = part.split(":").map((s) => s.trim());
     if (!email) continue;
-    if (role !== "admin" && role !== "child") throw new Error(`AUTH_ALLOWLIST: role for "${email}" must be admin or child`);
+    if (role !== "superadmin" && role !== "admin" && role !== "child") throw new Error(`AUTH_ALLOWLIST: role for "${email}" must be superadmin, admin or child`);
     map.set(email.toLowerCase(), role);
   }
   return map;

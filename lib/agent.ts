@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { KINDS, addItem, deleteItem, getItem, listItems, updateItem, type Item } from "./items";
 import { todayInTz, weekdayInTz, TZ } from "./dates";
-import { canDelete } from "./permissions";
+import { canDelete, canDeleteSlot } from "./permissions";
 import type { Role } from "./auth";
 import { activeTerm, addSlot, createTerm, deleteSlot, getSlot, listSlots, listTerms, updateSlot, updateTerm, type Slot } from "./timetable";
 import { z } from "zod";
@@ -31,6 +31,7 @@ export interface AgentResult {
   reply: string;
   actions: AgentAction[];
   slotActions: SlotAction[];
+  usage: { input: number; output: number };
 }
 
 const MAX_TOOL_ROUNDS = 8;
@@ -166,9 +167,9 @@ const tools: Anthropic.Tool[] = [
 
 function systemPrompt(actor: Actor): string {
   const who =
-    actor.role === "admin"
-      ? "You are talking to the student's parent (admin), who can manage every item."
-      : "You are talking to the student. He can add and edit items, but can only delete items he created himself; if a delete is refused, say so in one short sentence and suggest asking a parent.";
+    actor.role === "child"
+      ? "You are talking to the student. He can add and edit items, but can only delete items he created himself; if a delete is refused, say so in one short sentence and suggest asking a parent."
+      : "You are talking to the student's parent, who can manage every item.";
   return `You are the school planner assistant for a student. You help him record and manage school homework, ULHA (Ulangan Harian), UTS (Ujian Tengah Semester) and UAS (Ujian Akhir Semester), and answer questions about what is coming up.
 
 ${who}
@@ -182,7 +183,7 @@ Rules:
 - Put study topics, chapters and instructions in notes.
 - Before editing or deleting, call list_items to find the right id. If several items could match, ask which one.
 - After saving or changing anything, confirm in one short line stating the title, subject, and the date with its weekday (format: "Saved: <kind label> <title>, <Weekday> <day> <Mon>, <notes>."), so mistakes are caught.
-- The weekly class timetable (jadwal pelajaran) is separate from items: use add_class / update_class / delete_class / list_classes. Weekdays are numbered 1=Monday to 7=Sunday (${WEEKDAYS.join(", ")}). The timetable is versioned: each version has an effective start date (and an end date once replaced), so old semesters stay as history. For a changed or new semester timetable, call new_timetable with its effective start date first, then add_class for every period with the returned term_id; do not edit the old version. For small fixes to the current timetable, just use update_class. When given a whole timetable, add every period. "Jadwal" and "timetable" mean the same thing. Confirm class changes briefly.
+- The weekly class timetable (jadwal pelajaran) is separate from items: use add_class / update_class / delete_class / list_classes. Weekdays are numbered 1=Monday to 7=Sunday (${WEEKDAYS.join(", ")}). The timetable is versioned: each version has an effective start date (and an end date once replaced), so old semesters stay as history. For a changed or new semester timetable, call new_timetable with its effective start date first, then add_class for every period with the returned term_id; do not edit the old version. For small fixes to the current timetable, just use update_class. When given a whole timetable, add every period. "Jadwal" and "timetable" mean the same thing. Only the superadmin can delete timetable classes; if delete_class is refused, say so in one short sentence. Confirm class changes briefly.
 - Stay on school planning. Politely decline unrelated requests in one sentence.
 - Reply in the language the student writes in (English, Bahasa Indonesia or Malay), in a friendly, brief tone. Keep replies to a few lines.`;
 }
@@ -227,7 +228,7 @@ async function runTool(name: string, input: unknown, actions: AgentAction[], slo
       if (!Number.isInteger(id)) return { error: "id must be an integer" };
       const existing = await getSlot(id as number);
       if (!existing) return { error: "No class with that id" };
-      if (!canDelete(actor, existing)) return { error: "Not allowed: only a parent can delete classes someone else added" };
+      if (!canDeleteSlot(actor)) return { error: "Not allowed: only the superadmin can delete timetable classes" };
       const slot = await deleteSlot(id as number);
       if (!slot) return { error: "No class with that id" };
       slotActions.push({ type: "deleted", slot });
@@ -267,6 +268,7 @@ export async function runAgent(history: ChatMessage[], actor: Actor, injected?: 
   }));
   const actions: AgentAction[] = [];
   const slotActions: SlotAction[] = [];
+  const usage = { input: 0, output: 0 };
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const res = await client.messages.create({
@@ -277,13 +279,16 @@ export async function runAgent(history: ChatMessage[], actor: Actor, injected?: 
       messages,
     });
 
+    usage.input += res.usage?.input_tokens ?? 0;
+    usage.output += res.usage?.output_tokens ?? 0;
+
     if (res.stop_reason !== "tool_use") {
       const reply = res.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
         .join("\n")
         .trim();
-      return { reply: reply || "Done.", actions, slotActions };
+      return { reply: reply || "Done.", actions, slotActions, usage };
     }
 
     messages.push({ role: "assistant", content: res.content });
@@ -301,5 +306,5 @@ export async function runAgent(history: ChatMessage[], actor: Actor, injected?: 
     messages.push({ role: "user", content: results });
   }
 
-  return { reply: "Sorry, I got stuck on that. Could you try again with a bit more detail?", actions, slotActions };
+  return { reply: "Sorry, I got stuck on that. Could you try again with a bit more detail?", actions, slotActions, usage };
 }
