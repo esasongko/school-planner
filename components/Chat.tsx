@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentAction, SlotAction } from "@/lib/agent";
 import { ItemCard } from "./ItemCard";
 import { SlotRow } from "./Timetable";
+import { Spinner } from "./Spinner";
 
 interface Msg {
   role: "user" | "assistant";
@@ -23,6 +24,7 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,7 +33,8 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
       .then((d) => {
         if (d?.messages?.length) setMsgs([GREETING, ...d.messages]);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingHistory(false));
   }, []);
 
   useEffect(() => {
@@ -95,7 +98,16 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
             )}
           </div>
         ))}
-        {busy && <div className="bubble bot">…</div>}
+        {loadingHistory && (
+          <div className="chat-loading">
+            <Spinner label="Loading chat history" />
+          </div>
+        )}
+        {busy && (
+          <div className="bubble bot loading">
+            <Spinner size={14} label="Assistant is thinking" /> Thinking…
+          </div>
+        )}
         <div ref={endRef} />
       </div>
       {msgs.length <= 1 && (
@@ -127,7 +139,7 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
           }}
         />
         <button className="send" disabled={busy || !text.trim()}>
-          Send
+          {busy ? <Spinner light label="Sending" /> : "Send"}
         </button>
       </form>
     </div>

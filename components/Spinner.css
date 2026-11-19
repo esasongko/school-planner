@@ -1,0 +1,8 @@
+.spinner { display: inline-block; width: var(--sp, 18px); height: var(--sp, 18px); border: 2.5px solid rgba(100, 116, 139, .28); border-top-color: #1e3a8a; border-radius: 50%; animation: sp-rot .7s linear infinite; vertical-align: middle; flex: none; }
+.spinner.light { border-color: rgba(255, 255, 255, .4); border-top-color: #fff; }
+@keyframes sp-rot { to { transform: rotate(360deg); } }
+.boot { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.bubble.loading { display: inline-flex; align-items: center; gap: 8px; color: #64748b; }
+.chat-loading { display: flex; justify-content: center; padding: 18px 0; }
+.send .spinner { --sp: 14px; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }

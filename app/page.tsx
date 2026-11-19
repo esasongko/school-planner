@@ -10,6 +10,7 @@ import { Timetable, TodayClasses } from "@/components/Timetable";
 import type { Slot, Term } from "@/lib/timetable";
 import { Usage } from "@/components/Usage";
 import { ExamBanner } from "@/components/ExamBanner";
+import { Spinner } from "@/components/Spinner";
 
 type Tab = "chat" | "upcoming" | "timetable" | "calendar" | "usage";
 
@@ -128,7 +129,12 @@ export default function Home() {
   }
   const canDeleteSlot = () => me?.role === "superadmin";
 
-  if (me === null) return null;
+  if (me === null)
+    return (
+      <div className="boot">
+        <Spinner size={32} />
+      </div>
+    );
   if (!me.authed) return <Login />;
 
   const open = items.filter((i) => i.status === "open");
