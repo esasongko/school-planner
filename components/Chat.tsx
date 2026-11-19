@@ -12,22 +12,37 @@ interface Msg {
   error?: boolean;
 }
 
+const GREETING: Msg = {
+  role: "assistant",
+  content: "Hi! Tell me about homework, a ULHA (Ulangan Harian), UTS (Ujian Tengah Semester) or UAS (Ujian Akhir Semester) and I'll save it. You can also add your class timetable. Try: \"Science homework due Thursday, page 40-42\".",
+};
+
 const SUGGESTIONS = ["What's due this week?", "ULHA Matematika next Friday, bab 5 dan 6", "Any UTS or UAS coming up?", "What classes do I have tomorrow?"];
 
 export function Chat({ onChanged }: { onChanged: () => void }) {
-  const [msgs, setMsgs] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content: "Hi! Tell me about homework, a ULHA (Ulangan Harian), UTS (Ujian Tengah Semester) or UAS (Ujian Akhir Semester) and I'll save it. You can also add your class timetable. Try: \"Science homework due Thursday, page 40-42\".",
-    },
-  ]);
+  const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    fetch("/api/chat/history")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.messages?.length) setMsgs([GREETING, ...d.messages]);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, busy]);
+
+  async function clearChat() {
+    if (!confirm("Clear your chat history? Saved homework and exams are not affected.")) return;
+    await fetch("/api/chat/history", { method: "DELETE" });
+    setMsgs([GREETING]);
+  }
 
   async function send(content: string) {
     const trimmed = content.trim();
@@ -38,7 +53,7 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
     setBusy(true);
     try {
       // Only role/content go to the server; skip the canned greeting.
-      const history = next.slice(1).map(({ role, content }) => ({ role, content }));
+      const history = next.slice(1).filter((m) => !m.error).slice(-20).map(({ role, content }) => ({ role, content }));
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,6 +72,11 @@ export function Chat({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div className="chat">
+      {msgs.length > 1 && (
+        <button type="button" className="link" style={{ alignSelf: "flex-end", margin: "6px 12px 0", fontSize: ".78rem" }} onClick={clearChat}>
+          Clear chat
+        </button>
+      )}
       <div className="msgs">
         {msgs.map((m, i) => (
           <div key={i} style={{ display: "contents" }}>

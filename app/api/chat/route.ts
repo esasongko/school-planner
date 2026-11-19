@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDenied, requireSession } from "@/lib/auth";
 import { runAgent } from "@/lib/agent";
+import { saveExchange } from "@/lib/chathistory";
 import { recordUserChat, takeChatQuota } from "@/lib/usage";
 
 export const maxDuration = 60;
@@ -26,6 +27,11 @@ export async function POST(req: NextRequest) {
   try {
     const { usage, ...result } = await runAgent(parsed.data.messages, session);
     await recordUserChat(session.email, usage).catch((e) => console.error("usage log failed", e));
+    await saveExchange(session.email, parsed.data.messages.at(-1)!.content, {
+      content: result.reply,
+      actions: result.actions,
+      slotActions: result.slotActions,
+    }).catch((e) => console.error("history save failed", e));
     return NextResponse.json(result);
   } catch (e) {
     console.error("chat error", e);

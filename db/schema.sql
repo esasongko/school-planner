@@ -77,3 +77,13 @@ CREATE TABLE IF NOT EXISTS chat_usage_user (
   output_tokens INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (day, email)
 );
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user','assistant')),
+  content TEXT NOT NULL,
+  extra JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS chat_messages_email_idx ON chat_messages (email, id);
