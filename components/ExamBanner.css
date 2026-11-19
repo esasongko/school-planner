@@ -1,0 +1,15 @@
+.exam-banner { display: flex; align-items: center; gap: 10px; background: #fff7e6; color: #92400e; border-bottom: 1px solid #fde4b0; overflow: hidden; font-size: .84rem; font-weight: 600; }
+.exam-banner.now { background: #fdeaea; color: #b91c1c; border-bottom-color: #fbcaca; }
+.exam-banner .eb-tag { flex: none; margin-left: 12px; padding: 2px 8px; border-radius: 999px; background: #d97706; color: #fff; font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.exam-banner.now .eb-tag { background: #dc2626; }
+.exam-banner .eb-track { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; padding: 8px 0; mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%); -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%); }
+.exam-banner .eb-move { display: inline-flex; animation: eb-scroll 28s linear infinite; }
+.exam-banner .eb-track:hover .eb-move { animation-play-state: paused; }
+.exam-banner .eb-text { flex: none; padding-right: 64px; }
+@keyframes eb-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .exam-banner .eb-track { white-space: normal; mask-image: none; -webkit-mask-image: none; }
+  .exam-banner .eb-move { animation: none; display: block; }
+  .exam-banner .eb-text:nth-child(2) { display: none; }
+  .exam-banner .eb-text { padding-right: 0; }
+}

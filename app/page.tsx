@@ -9,6 +9,7 @@ import { Legend } from "@/components/Legend";
 import { Timetable, TodayClasses } from "@/components/Timetable";
 import type { Slot, Term } from "@/lib/timetable";
 import { Usage } from "@/components/Usage";
+import { ExamBanner } from "@/components/ExamBanner";
 
 type Tab = "chat" | "upcoming" | "timetable" | "calendar" | "usage";
 
@@ -151,6 +152,7 @@ export default function Home() {
         <PushButton />
       </header>
       {me.bypass && <div className="banner">Login is switched off for now (temporary). Don't share this link.</div>}
+      <ExamBanner items={items} />
       <nav className="tabs" role="tablist">
         {((me.role === "superadmin" ? ["chat", "upcoming", "timetable", "calendar", "usage"] : ["chat", "upcoming", "timetable", "calendar"]) as Tab[]).map((t) => (
           <button key={t} role="tab" className="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
